@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
+.env.*
+*.log
+
+# Alembic
+alembic.ini
+
+# Local Postgres data (if you map a folder)
+.pgdata/
+
+# OS/IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Docker volumes (if any)
+*.db

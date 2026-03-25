@@ -1,0 +1,99 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: planpilot
+      POSTGRES_USER: planpilot
+      POSTGRES_PASSWORD: planpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - "D:/DokcerData/planpilot/pgdata:/var/lib/postgresql/data"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://planpilot:planpilot@db:5432/planpilot
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-me
+      ACCESS_TOKEN_EXPIRE_MINUTES: "10080"
+      TIMEZONE: Asia/Shanghai
+      DEFAULT_WINDOW_START: "20:00"
+      DEFAULT_WINDOW_END: "22:00"
+      DEFAULT_DELAY_REASON: "事太多，没时间执行"
+      MAIL_ENABLED: "false"
+      MAIL_TO: "1607603586@qq.com"
+      MAIL_FROM: ""
+      MAIL_SMTP_HOST: ""
+      MAIL_SMTP_PORT: "587"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://planpilot:planpilot@db:5432/planpilot
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-me
+      TIMEZONE: Asia/Shanghai
+      DEFAULT_WINDOW_START: "20:00"
+      DEFAULT_WINDOW_END: "22:00"
+      DEFAULT_DELAY_REASON: "事太多，没时间执行"
+      MAIL_ENABLED: "false"
+      MAIL_TO: "1607603586@qq.com"
+      MAIL_FROM: ""
+      MAIL_SMTP_HOST: ""
+      MAIL_SMTP_PORT: "587"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+    depends_on:
+      - db
+      - redis
+
+  beat:
+    build:
+      context: .
+      dockerfile: docker/beat.Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://planpilot:planpilot@db:5432/planpilot
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-me
+      TIMEZONE: Asia/Shanghai
+      DEFAULT_WINDOW_START: "20:00"
+      DEFAULT_WINDOW_END: "22:00"
+      DEFAULT_DELAY_REASON: "事太多，没时间执行"
+      MAIL_ENABLED: "false"
+      MAIL_TO: "1607603586@qq.com"
+      MAIL_FROM: ""
+      MAIL_SMTP_HOST: ""
+      MAIL_SMTP_PORT: "587"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      REMIND_CRON: "0 9 * * *"   # 每天09:00发送摘要（可改）
+    depends_on:
+      - db
+      - redis
+
+  flower:
+    image: mher/flower:2.0
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+

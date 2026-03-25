@@ -1,0 +1,15 @@
+fastapi==0.115.8
+uvicorn[standard]==0.34.0
+sqlalchemy==2.0.38
+alembic==1.15.1
+psycopg[binary]==3.2.5
+pydantic==2.10.6
+pydantic-settings==2.8.1
+python-multipart==0.0.20
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+celery==5.4.0
+redis==5.2.1
+flower==2.0.1
+apscheduler==3.11.0
+email-validator==2.2.0
