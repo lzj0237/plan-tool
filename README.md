@@ -14,6 +14,41 @@
 - 邮件：SMTP（QQ邮箱）
 - 部署：docker-compose
 
+## 快速开始（本地）
+
+启动：
+```bash
+docker compose up -d
+```
+
+API：<http://localhost:8000>
+- Swagger: <http://localhost:8000/docs>
+- Health: <http://localhost:8000/health>
+
+最小流程（创建→开始→暂停→继续→结束）：
+```bash
+# 1) 创建任务
+curl -X POST http://localhost:8000/api/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"写 PlanPilot v0.1"}'
+
+# 假设返回 id=1
+# 2) 开始
+curl -X POST http://localhost:8000/api/tasks/1/start
+
+# 3) 暂停
+curl -X POST http://localhost:8000/api/tasks/1/pause
+
+# 4) 继续
+curl -X POST http://localhost:8000/api/tasks/1/resume
+
+# 5) 结束
+curl -X POST http://localhost:8000/api/tasks/1/stop
+
+# 查询任务
+curl http://localhost:8000/api/tasks/1
+```
+
 ## 开发里程碑
 - v0.1：事项CRUD + 执行记录计时（单人）
 - v0.2：顺延算法 + 顺延原因日志

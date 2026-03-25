@@ -59,6 +59,11 @@ def update_task(task_id: int, payload: TaskUpdate, db: Session = Depends(get_db)
     task = get_task_or_404(db, task_id)
 
     data = payload.model_dump(exclude_unset=True)
+
+    # status is controlled by start/pause/resume/stop in v0.1
+    if "status" in data:
+        raise HTTPException(status_code=400, detail="status cannot be updated directly")
+
     for k, v in data.items():
         setattr(task, k, v)
     task.updated_at = utcnow()
@@ -90,12 +95,12 @@ def get_open_execution(db: Session, task_id: int) -> TaskExecution | None:
 def start_task(task_id: int, db: Session = Depends(get_db)):
     task = get_task_or_404(db, task_id)
 
+    if task.status != "planned":
+        raise HTTPException(status_code=409, detail="only planned task can be started")
+
     running = get_open_execution(db, task_id)
-    if running and running.status == "running":
-        raise HTTPException(status_code=409, detail="task already running")
-    if running and running.status == "paused":
-        # resume: open a new segment
-        pass
+    if running:
+        raise HTTPException(status_code=409, detail="task already has an open execution")
 
     ex = TaskExecution(task_id=task_id, started_at=utcnow(), ended_at=None, status="running")
     task.status = "running"
@@ -112,9 +117,12 @@ def start_task(task_id: int, db: Session = Depends(get_db)):
 def pause_task(task_id: int, db: Session = Depends(get_db)):
     task = get_task_or_404(db, task_id)
 
+    if task.status != "running":
+        raise HTTPException(status_code=409, detail="only running task can be paused")
+
     running = get_open_execution(db, task_id)
     if not running or running.status != "running":
-        raise HTTPException(status_code=409, detail="task is not running")
+        raise HTTPException(status_code=409, detail="task has no running execution")
 
     running.status = "paused"
     task.status = "paused"
@@ -127,21 +135,47 @@ def pause_task(task_id: int, db: Session = Depends(get_db)):
     return running
 
 
+@router.post("/tasks/{task_id}/resume", response_model=ExecutionOut)
+def resume_task(task_id: int, db: Session = Depends(get_db)):
+    task = get_task_or_404(db, task_id)
+
+    if task.status != "paused":
+        raise HTTPException(status_code=409, detail="only paused task can be resumed")
+
+    open_ex = get_open_execution(db, task_id)
+    if not open_ex or open_ex.status != "paused":
+        raise HTTPException(status_code=409, detail="task has no paused execution")
+
+    # Resume by creating a new execution segment
+    ex = TaskExecution(task_id=task_id, started_at=utcnow(), ended_at=None, status="running")
+    task.status = "running"
+    task.updated_at = utcnow()
+
+    db.add(ex)
+    db.add(task)
+    db.commit()
+    db.refresh(ex)
+    return ex
+
+
 @router.post("/tasks/{task_id}/stop", response_model=ExecutionOut)
 def stop_task(task_id: int, db: Session = Depends(get_db)):
     task = get_task_or_404(db, task_id)
 
-    running = get_open_execution(db, task_id)
-    if not running:
+    if task.status not in ("running", "paused"):
+        raise HTTPException(status_code=409, detail="only running/paused task can be stopped")
+
+    open_ex = get_open_execution(db, task_id)
+    if not open_ex:
         raise HTTPException(status_code=409, detail="task has no open execution")
 
-    running.ended_at = utcnow()
-    running.status = "stopped"
+    open_ex.ended_at = utcnow()
+    open_ex.status = "stopped"
     task.status = "done"
     task.updated_at = utcnow()
 
-    db.add(running)
+    db.add(open_ex)
     db.add(task)
     db.commit()
-    db.refresh(running)
-    return running
+    db.refresh(open_ex)
+    return open_ex
