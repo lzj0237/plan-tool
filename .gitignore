@@ -9,7 +9,6 @@ __pycache__/
 *.log
 
 # Alembic
-alembic.ini
 
 # Local Postgres data (if you map a folder)
 .pgdata/
