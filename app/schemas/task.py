@@ -41,6 +41,9 @@ class TaskOut(BaseModel):
     planned_end: Optional[datetime] = None
     planned_duration_minutes: Optional[int] = None
 
+    # computed
+    total_minutes: int = 0
+
     created_at: datetime
     updated_at: datetime
 

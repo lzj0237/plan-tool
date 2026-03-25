@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import Task, TaskExecution
 from app.schemas import ExecutionOut, TaskCreate, TaskOut, TaskUpdate
+from app.services.task_stats import get_task_time_summary
 
 router = APIRouter(tags=["tasks"])
 
@@ -46,12 +47,20 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
 @router.get("/tasks", response_model=list[TaskOut])
 def list_tasks(db: Session = Depends(get_db)):
     tasks = db.query(Task).order_by(Task.id.desc()).limit(200).all()
-    return tasks
+    out: list[TaskOut] = []
+    for t in tasks:
+        summary = get_task_time_summary(db, t.id)
+        base = TaskOut.model_validate(t)
+        out.append(base.model_copy(update={"total_minutes": summary.total_minutes_ceil}))
+    return out
 
 
 @router.get("/tasks/{task_id}", response_model=TaskOut)
 def get_task(task_id: int, db: Session = Depends(get_db)):
-    return get_task_or_404(db, task_id)
+    task = get_task_or_404(db, task_id)
+    summary = get_task_time_summary(db, task_id)
+    base = TaskOut.model_validate(task)
+    return base.model_copy(update={"total_minutes": summary.total_minutes_ceil})
 
 
 @router.patch("/tasks/{task_id}", response_model=TaskOut)
