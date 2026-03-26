@@ -34,6 +34,7 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)):
         planned_start=payload.planned_start,
         planned_end=payload.planned_end,
         planned_duration_minutes=payload.planned_duration_minutes,
+        is_fixed=payload.is_fixed,
         status="planned",
         created_at=now,
         updated_at=now,
