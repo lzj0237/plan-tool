@@ -41,6 +41,10 @@ class TaskOut(BaseModel):
     title: str
     status: TaskStatus
 
+    # 多租户支持
+    tenant_id: int
+    user_id: int
+
     description: Optional[str] = None
     planned_date: Optional[date] = None
     planned_start: Optional[datetime] = None

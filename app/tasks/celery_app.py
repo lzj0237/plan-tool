@@ -9,3 +9,8 @@ celery = Celery(
 )
 
 celery.conf.timezone = settings.timezone
+
+# Import tasks to register them
+from app.tasks.email_tasks import send_daily_summary_task, send_weekly_summary_task
+celery.task(name="email.send_daily_summary", bind=True)(send_daily_summary_task)
+celery.task(name="email.send_weekly_summary", bind=True)(send_weekly_summary_task)
